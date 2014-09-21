@@ -1,0 +1,25 @@
+body {
+  background: #000;
+  width:100%;
+  padding: 0;
+  margin:0;
+  scroll: hidden;
+}
+
+#canvas {
+  padding-left: 0;
+  padding-right: 0;
+  display: block;
+  width: 100%;  
+}
+
+#fps {
+  color: #888;
+  position: fixed;
+  top: 5px;
+  left: 5px;
+  -moz-user-select: none;
+   -khtml-user-select: none;
+   -webkit-user-select: none;
+   user-select:none;
+}

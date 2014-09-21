@@ -183,8 +183,13 @@ function WebGL(canvas)
                 }
             }
         }
-        
-        this.glContext["uniform"+type+(type[0]=="1"?"":"v")](this.curProgram.uniforms[uniform], value);
+       
+        var method = "uniform"+type+(type[0]=="1"?"":"v");
+        if (type.substring(0,6) == "Matrix") {
+            this.glContext[method](this.curProgram.uniforms[uniform], false, value);
+        }else{
+            this.glContext[method](this.curProgram.uniforms[uniform], value);
+        }
     };
 }
 
