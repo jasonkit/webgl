@@ -96,7 +96,9 @@ void main(void) {
             F += calculateForce(p, dat, u_k.z, 2.0*u_L.y);
         }
 
-        if ((abs(float(pos.x-(u_size.x/2))) <3.0) && (abs(float(pos.y-(u_size.y/2))) < 3.0)) {
+
+        vec2 disturbance_center = vec2(pos) - vec2(u_size)/2.0;
+        if (length(disturbance_center) <= length(vec2(u_size))/10.0) {
             F += vec3(0,0,u_disturbance); 
         }
 
