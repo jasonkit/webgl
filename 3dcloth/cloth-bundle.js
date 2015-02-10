@@ -690,7 +690,7 @@ function SceneControl(canvas)
 
     this.init = function(mmcb, mucb, mwcb, ccb) {
         canvas.addEventListener("mousedown", this.onMouseDown);
-        canvas.addEventListener("mousewheel", this.onMouseWheel);
+        canvas.addEventListener("wheel", this.onMouseWheel);
         window.addEventListener("mouseup", this.onMouseUp);
         window.addEventListener("mousemove", this.onMouseMove);
         self.mouseMoveCallBack = mmcb;
@@ -702,8 +702,8 @@ function SceneControl(canvas)
     this.onMouseDown = function(e)
     {
         self.isMouseDown = true; 
-        self.startPos.x = e.x
-        self.startPos.y = e.y;
+        self.startPos.x = e.clientX
+        self.startPos.y = e.clientY;
         self.moved = false;
     };
     
@@ -729,7 +729,7 @@ function SceneControl(canvas)
         self.moved = true;
         
         var q = quat.create();
-        var axis = [self.startPos.y-e.y, e.x-self.startPos.x,0];
+        var axis = [self.startPos.y-e.clientY, e.clientX-self.startPos.x,0];
         var rad = vec3.length(axis)/200.0;
         vec3.normalize(axis, axis);
         quat.setAxisAngle(q, axis, rad)
@@ -745,7 +745,7 @@ function SceneControl(canvas)
     this.onMouseWheel = function(e)
     {
         if (typeof self.mouseMoveCallBack === "function") {
-            self.mouseWheelCallBack(vec3.fromValues(0,0,e.wheelDeltaY));
+            self.mouseWheelCallBack(vec3.fromValues(0,0,e.deltaY));
         }
         e.preventDefault();
         e.stopPropagation();
