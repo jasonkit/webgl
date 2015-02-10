@@ -1,0 +1,14 @@
+{
+    "name": "cloth",
+    "version": "0.0.1",
+    "dependencies": {
+        "gl-fbo": "*",
+        "gl-vao": "*",
+        "gl-buffer": "*",
+        "gl-texture2d": "*",
+        "gl-shader-core": "*",
+        "gl-shader": "*",
+        "brfs": "*",
+        "gl-matrix": "*"
+    }
+}

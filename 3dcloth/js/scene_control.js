@@ -1,3 +1,7 @@
+var mat4 = require("gl-matrix").mat4;
+var vec3 = require("gl-matrix").vec3;
+var quat = require("gl-matrix").quat;
+
 function SceneControl(canvas)
 {
     var self = this;
@@ -68,10 +72,12 @@ function SceneControl(canvas)
     this.onMouseWheel = function(e)
     {
         if (typeof self.mouseMoveCallBack === "function") {
-            self.mouseWheelCallBack([0,0,e.wheelDeltaY]);
+            self.mouseWheelCallBack(vec3.fromValues(0,0,e.wheelDeltaY));
         }
         e.preventDefault();
         e.stopPropagation();
     };
 
 }
+
+module.exports = SceneControl;

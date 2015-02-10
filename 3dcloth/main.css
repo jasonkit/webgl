@@ -23,3 +23,7 @@ body {
    -webkit-user-select: none;
    user-select:none;
 }
+
+table {
+  color: #ccc;  
+}
