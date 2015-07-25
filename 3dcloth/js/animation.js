@@ -1,3 +1,5 @@
+/*jslint browserify:true*/
+/*global console*/
 "use strict";
 
 function Animation() {
@@ -41,11 +43,11 @@ Animation.prototype.tick = function(ts)
         this.isStop = false;
         this.timer = null;
     }
-}
+};
 
 Animation.prototype.stop = function()
 {
     this.isStop = true;
-}
+};
 
 module.exports = Animation;

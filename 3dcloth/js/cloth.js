@@ -1,3 +1,5 @@
+/*jslint browserify:true*/
+/*global console*/
 "use strict";
 var fs = require("fs");
 var createBuffer = require("gl-buffer");
@@ -114,7 +116,7 @@ Cloth.prototype.generateWireframeVertices = function ()
 Cloth.prototype.generateFabricPattern = function (is_front)
 {
     var canvas = document.createElement("canvas");
-    var size = 1024
+    var size = 1024;
     canvas.width = size;
     canvas.height = size;
     
@@ -280,7 +282,7 @@ Cloth.prototype.initState = function ()
     var fbo = this.grid.computeBuffer.frameBufferObject;
     var textures = this.grid.computeBuffer.textures;
 
-    var initProgram = this.shaderPrograms["init_pos"];
+    var initProgram = this.shaderPrograms.init_pos;
     initProgram.bind();
     initProgram.uniforms.u_size = [this.width, this.height];
    
@@ -310,22 +312,22 @@ Cloth.prototype.init = function ()
 
     var vertShaders = this.shaderSources.vertShaders;
     var fragShaders = this.shaderSources.fragShaders;
-    vertShaders["compute"]          = fs.readFileSync("./glsl/compute_v.glsl","utf8");
-    vertShaders["render_wireframe"] = fs.readFileSync("./glsl/render_wireframe_v.glsl","utf8");
-    vertShaders["render"]           = fs.readFileSync("./glsl/render_v.glsl","utf8");
-    fragShaders["compute_pos"]      = fs.readFileSync("./glsl/compute_pos_f.glsl","utf8");
-    fragShaders["compute_vel"]      = fs.readFileSync("./glsl/compute_vel_f.glsl","utf8");
-    fragShaders["compute_normal"]   = fs.readFileSync("./glsl/compute_normal_f.glsl","utf8");
-    fragShaders["init"]             = fs.readFileSync("./glsl/init_f.glsl","utf8");
-    fragShaders["render_wireframe"] = fs.readFileSync("./glsl/render_wireframe_f.glsl","utf8");
-    fragShaders["render"]           = fs.readFileSync("./glsl/render_f.glsl","utf8");
+    vertShaders.compute          = fs.readFileSync("./glsl/compute_v.glsl","utf8");
+    vertShaders.render_wireframe = fs.readFileSync("./glsl/render_wireframe_v.glsl","utf8");
+    vertShaders.render           = fs.readFileSync("./glsl/render_v.glsl","utf8");
+    fragShaders.compute_pos      = fs.readFileSync("./glsl/compute_pos_f.glsl","utf8");
+    fragShaders.compute_vel      = fs.readFileSync("./glsl/compute_vel_f.glsl","utf8");
+    fragShaders.compute_normal   = fs.readFileSync("./glsl/compute_normal_f.glsl","utf8");
+    fragShaders.init             = fs.readFileSync("./glsl/init_f.glsl","utf8");
+    fragShaders.render_wireframe = fs.readFileSync("./glsl/render_wireframe_f.glsl","utf8");
+    fragShaders.render           = fs.readFileSync("./glsl/render_f.glsl","utf8");
    
-    this.shaderPrograms["init_pos"]         = createShader(gl, vertShaders["compute"],  fragShaders["init"]);
-    this.shaderPrograms["compute_pos"]      = createShader(gl, vertShaders["compute"],  fragShaders["compute_pos"]);
-    this.shaderPrograms["compute_vel"]      = createShader(gl, vertShaders["compute"],  fragShaders["compute_vel"]);
-    this.shaderPrograms["render_wireframe"] = createShader(gl, vertShaders["render_wireframe"],   fragShaders["render_wireframe"]);
-    this.shaderPrograms["render"]           = createShader(gl, vertShaders["render"],   fragShaders["render"]);
-    this.shaderPrograms["compute_normal"]   = createShader(gl, vertShaders["compute"],  fragShaders["compute_normal"]);
+    this.shaderPrograms.init_pos         = createShader(gl, vertShaders.compute,  fragShaders.init);
+    this.shaderPrograms.compute_pos      = createShader(gl, vertShaders.compute,  fragShaders.compute_pos);
+    this.shaderPrograms.compute_vel      = createShader(gl, vertShaders.compute,  fragShaders.compute_vel);
+    this.shaderPrograms.render_wireframe = createShader(gl, vertShaders.render_wireframe,   fragShaders.render_wireframe);
+    this.shaderPrograms.render           = createShader(gl, vertShaders.render,   fragShaders.render);
+    this.shaderPrograms.compute_normal   = createShader(gl, vertShaders.compute,  fragShaders.compute_normal);
 
     this.initBuffers();
     this.initState();
@@ -371,10 +373,10 @@ Cloth.prototype.runProgram = function (program)
     var gl = this.gl;
     
     computeBuffer.vertices.bind();
-    program.attributes["a_vpos"].pointer();
+    program.attributes.a_vpos.pointer();
     
     computeBuffer.texCoords.bind();
-    program.attributes["a_tpos"].pointer();
+    program.attributes.a_tpos.pointer();
 
     computeBuffer.indices.bind();
     gl.viewport(0, 0, this.grid.width, this.grid.height);
@@ -385,12 +387,12 @@ Cloth.prototype.computeNormal = function ()
 {
     var gl = this.gl;
     var textures = this.grid.computeBuffer.textures;
-    var computeNormalProgram = this.shaderPrograms["compute_normal"];
+    var computeNormalProgram = this.shaderPrograms.compute_normal;
     
     computeNormalProgram.bind();
     textures[this.grid.curIdx*2].bind(0);
-    computeNormalProgram.uniforms["u_pos_map"] = 0;
-    computeNormalProgram.uniforms["u_size"] = [this.grid.width, this.grid.height];
+    computeNormalProgram.uniforms.u_pos_map = 0;
+    computeNormalProgram.uniforms.u_size = [this.grid.width, this.grid.height];
 
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.grid.renderBuffer.normalTexture.handle, 0); 
     this.runProgram(computeNormalProgram);
@@ -414,14 +416,14 @@ Cloth.prototype.render = function ()
 
     if (this.wireframe) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        renderProgram = this.shaderPrograms["render_wireframe"]
+        renderProgram = this.shaderPrograms.render_wireframe;
         renderProgram.bind();
         renderProgram.uniforms.u_MVP = this.mat.mvp;
         renderProgram.uniforms.u_color = [0.7, 0.5, 1.0, 1.0];
         
         renderBuffer.vertices.bind();
         renderBuffer.vertices.update(this.grid.computeBuffer.frameBuffer, 0);
-        renderProgram.attributes["a_vpos"].pointer();
+        renderProgram.attributes.a_vpos.pointer();
         
         renderBuffer.indices.bind();
         gl.viewport(0, 0, this.viewport.width, this.viewport.height);
@@ -431,15 +433,15 @@ Cloth.prototype.render = function ()
     } else {
         this.computeNormal();
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        renderProgram = this.shaderPrograms["render"];
+        renderProgram = this.shaderPrograms.render;
 
         renderProgram.bind();
 
         textures[0].bind(0);
-        renderProgram.uniforms["u_front_map"] = 0;
+        renderProgram.uniforms.u_front_map = 0;
         
         textures[1].bind(1);
-        renderProgram.uniforms["u_back_map"] = 1;
+        renderProgram.uniforms.u_back_map = 1;
 
         renderProgram.uniforms.u_MVP = this.mat.mvp;
         renderProgram.uniforms.u_MV = this.mat.mv;
@@ -453,14 +455,14 @@ Cloth.prototype.render = function ()
 
         renderBuffer.vertices.bind();
         renderBuffer.vertices.update(this.grid.computeBuffer.frameBuffer, 0);
-        renderProgram.attributes["a_vpos"].pointer();
+        renderProgram.attributes.a_vpos.pointer();
         
         renderBuffer.texCoords.bind();
-        renderProgram.attributes["a_tpos"].pointer();
+        renderProgram.attributes.a_tpos.pointer();
         
         renderBuffer.normals.bind();
         renderBuffer.normals.update(renderBuffer.normalBuffer, 0);
-        renderProgram.attributes["a_normal"].pointer();
+        renderProgram.attributes.a_normal.pointer();
         
         renderBuffer.indices.bind();
         gl.viewport(0, 0, this.viewport.width, this.viewport.height);
@@ -487,8 +489,8 @@ Cloth.prototype.simulate = function (delta)
     }
 
     var nextBufIdx = (this.grid.curIdx+1)%this.nBuf;
-    var computeVelocityProgram = this.shaderPrograms["compute_vel"];
-    var computePositionProgram = this.shaderPrograms["compute_pos"];
+    var computeVelocityProgram = this.shaderPrograms.compute_vel;
+    var computePositionProgram = this.shaderPrograms.compute_pos;
     var textures = this.grid.computeBuffer.textures;
     var fbo = this.grid.computeBuffer.frameBufferObject;
 
@@ -498,27 +500,27 @@ Cloth.prototype.simulate = function (delta)
     computeVelocityProgram.bind();
 
     textures[this.grid.curIdx*2].bind(0);
-    computeVelocityProgram.uniforms["u_pos_map"] = 0;
+    computeVelocityProgram.uniforms.u_pos_map = 0;
     
     textures[this.grid.curIdx*2 + 1].bind(1);
-    computeVelocityProgram.uniforms["u_vel_map"] = 1;
+    computeVelocityProgram.uniforms.u_vel_map = 1;
 
-    computeVelocityProgram.uniforms["u_size"] = [this.grid.width, this.grid.height];
-    computeVelocityProgram.uniforms["u_L"] = [this.width/this.grid.width,
+    computeVelocityProgram.uniforms.u_size = [this.grid.width, this.grid.height];
+    computeVelocityProgram.uniforms.u_L = [this.width/this.grid.width,
                                               this.height/this.grid.height];
-    computeVelocityProgram.uniforms["u_param"] = [
+    computeVelocityProgram.uniforms.u_param = [
         this.param.gramPerMeterSq*this.width*this.height/(this.grid.width*this.grid.height*this.pixelPerMeter*this.pixelPerMeter*1000.0),
         this.param.gravity,
         this.param.damping
     ];
-    computeVelocityProgram.uniforms["u_k"] = [this.param.k.stretch, this.param.k.shear, this.param.k.bend];
-    computeVelocityProgram.uniforms["u_h"] = delta;
+    computeVelocityProgram.uniforms.u_k = [this.param.k.stretch, this.param.k.shear, this.param.k.bend];
+    computeVelocityProgram.uniforms.u_h = delta;
 
     if (this.disturbance) {
-        computeVelocityProgram.uniforms["u_disturbance"] = this.disturbanceForce;
+        computeVelocityProgram.uniforms.u_disturbance = this.disturbanceForce;
         this.disturbance = false;
     }else{
-        computeVelocityProgram.uniforms["u_disturbance"] = 0.0;
+        computeVelocityProgram.uniforms.u_disturbance = 0.0;
     }
 
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[nextBufIdx*2+1].handle, 0); 
@@ -528,13 +530,13 @@ Cloth.prototype.simulate = function (delta)
     computePositionProgram.bind();
     
     textures[this.grid.curIdx*2].bind(0);
-    computePositionProgram.uniforms["u_pos_map"] = 0;
+    computePositionProgram.uniforms.u_pos_map = 0;
     
     textures[nextBufIdx*2 + 1].bind(1);
-    computePositionProgram.uniforms["u_vel_map"] = 1;
+    computePositionProgram.uniforms.u_vel_map = 1;
     
-    computePositionProgram.uniforms["u_size"] = [this.grid.width, this.grid.height];
-    computePositionProgram.uniforms["u_h"] = delta;
+    computePositionProgram.uniforms.u_size = [this.grid.width, this.grid.height];
+    computePositionProgram.uniforms.u_h = delta;
     
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[nextBufIdx*2].handle, 0); 
     this.runProgram(computePositionProgram);

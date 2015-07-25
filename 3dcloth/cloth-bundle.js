@@ -1,4 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*jslint browserify:true*/
+/*global console*/
 "use strict";
 
 function Animation() {
@@ -42,16 +44,18 @@ Animation.prototype.tick = function(ts)
         this.isStop = false;
         this.timer = null;
     }
-}
+};
 
 Animation.prototype.stop = function()
 {
     this.isStop = true;
-}
+};
 
 module.exports = Animation;
 
 },{}],2:[function(require,module,exports){
+/*jslint browserify:true*/
+/*global console*/
 "use strict";
 
 var createBuffer = require("gl-buffer");
@@ -168,7 +172,7 @@ Cloth.prototype.generateWireframeVertices = function ()
 Cloth.prototype.generateFabricPattern = function (is_front)
 {
     var canvas = document.createElement("canvas");
-    var size = 1024
+    var size = 1024;
     canvas.width = size;
     canvas.height = size;
     
@@ -334,7 +338,7 @@ Cloth.prototype.initState = function ()
     var fbo = this.grid.computeBuffer.frameBufferObject;
     var textures = this.grid.computeBuffer.textures;
 
-    var initProgram = this.shaderPrograms["init_pos"];
+    var initProgram = this.shaderPrograms.init_pos;
     initProgram.bind();
     initProgram.uniforms.u_size = [this.width, this.height];
    
@@ -364,22 +368,22 @@ Cloth.prototype.init = function ()
 
     var vertShaders = this.shaderSources.vertShaders;
     var fragShaders = this.shaderSources.fragShaders;
-    vertShaders["compute"]          = "attribute vec2 a_vpos;\nattribute vec2 a_tpos;\n\nvarying vec2 v_tpos;\nvoid main(void)\n{\n    gl_Position = vec4(a_vpos, 0.0, 1.0);\n    v_tpos = a_tpos;\n}\n";
-    vertShaders["render_wireframe"] = "attribute vec4 a_vpos;\n\nuniform mat4 u_MVP;\n\nvoid main(void) {\n    gl_Position = u_MVP*a_vpos;\n}\n";
-    vertShaders["render"]           = "precision highp float;\nattribute vec4 a_vpos;\nattribute vec4 a_normal;\nattribute vec2 a_tpos;\n\nuniform mat4 u_MVP;\nuniform mat4 u_MV;\nuniform mat3 u_N;\n\nvarying vec3 n;\nvarying vec2 v_tpos;\n\nvoid main(void) {\n    n = vec3(a_normal.x, a_normal.y, a_normal.z);\n    n = u_N * n;\n    \n    v_tpos = a_tpos;\n    \n    gl_Position = u_MVP*a_vpos;\n}\n";
-    fragShaders["compute_pos"]      = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\n\nuniform highp sampler2D u_pos_map;\nuniform highp sampler2D u_vel_map;\nuniform ivec2 u_size;\nuniform float u_h;\n\nvoid main(void) {\n    ivec2 pos = ivec2(floor(v_tpos*vec2(u_size)));\n    vec4 prev_pos_dat = texture2D(u_pos_map, v_tpos);\n    vec4 cur_vel_dat = texture2D(u_vel_map, v_tpos);\n\n    vec3 p = vec3(prev_pos_dat.x, prev_pos_dat.y, prev_pos_dat.z);\n    vec3 v = vec3(cur_vel_dat.x, cur_vel_dat.y, cur_vel_dat.z);\n    \n    if ((pos.x<3 && pos.y<3) || (pos.x>u_size.x-4 && pos.y<3)) { \n    //if ((abs(float(pos.x-(u_size.x/2))) <3.0 && pos.y==0)) { \n        gl_FragColor = vec4(p, 1);\n    }else{\n        p += u_h*v; \n        gl_FragColor = vec4(p, 1);\n    }\n}\n";
-    fragShaders["compute_vel"]      = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\n\nuniform highp sampler2D u_pos_map;\nuniform highp sampler2D u_vel_map;\nuniform ivec2 u_size;\nuniform vec2 u_L;\nuniform vec3 u_k;\nuniform vec3 u_param;\nuniform float u_h;\nuniform float u_disturbance;\n\nvec3 calculateForce(vec3 p, vec4 dat, float k, float L)\n{\n    vec3 q = vec3(dat.x, dat.y, dat.z);\n    float dist = length(q-p);\n    return (k*(dist-L)/dist)*(q-p);\n}\n\nvoid main(void) {\n    float m = u_param.x;\n    vec3  g = vec3(0,u_param.y,0);\n    float d = u_param.z;\n\n    ivec2 pos = ivec2(floor(v_tpos*vec2(u_size)));\n    vec2 delta = 1.0/vec2(u_size);\n    vec4 prev_pos_dat = texture2D(u_pos_map, v_tpos);\n    vec4 prev_vel_dat = texture2D(u_vel_map, v_tpos);\n    \n    vec3 v = vec3(prev_vel_dat.x, prev_vel_dat.y, prev_vel_dat.z);\n\n    if ((pos.x<3 && pos.y<3) || (pos.x>u_size.x-4 && pos.y<3)) { \n    //if ((abs(float(pos.x-(u_size.x/2))) <3.0 && pos.y==0)) { \n        gl_FragColor = vec4(v, 0);\n    }else{\n        vec3 p = vec3(prev_pos_dat.x, prev_pos_dat.y, prev_pos_dat.z);\n        vec3 F = m*g - d*v;\n        \n        // stretch\n        if (pos.x>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-1,0));\n            F += calculateForce(p, dat, u_k.x, u_L.x);\n        }\n        if (pos.x<u_size.x-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(1,0));\n            F += calculateForce(p, dat, u_k.x, u_L.x);\n        }\n        if (pos.y>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,-1));\n            F += calculateForce(p, dat, u_k.x, u_L.y);\n        }\n        if (pos.y<u_size.y-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,1));\n            F += calculateForce(p, dat, u_k.x, u_L.y);\n        }\n       \n        // shear\n        float nL = length(u_L);\n        if (pos.x>0 && pos.y<u_size.y-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-1,1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        if (pos.x<u_size.x-1 && pos.y>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(1,-1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        if (pos.x>0 && pos.y>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-1,-1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        if (pos.x<u_size.x-1 && pos.y<u_size.y-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(1,1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        // bend\n        if (pos.x>1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-2,0));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.x);\n        }\n        if (pos.x<u_size.x-2) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(2,0));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.x);\n        }\n        if (pos.y>1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,-2));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.y);\n        }\n        if (pos.y<u_size.y-2) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,2));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.y);\n        }\n\n\n        vec2 disturbance_center = vec2(pos) - vec2(u_size)/2.0;\n        if (length(disturbance_center) <= length(vec2(u_size))/10.0) {\n            F += vec3(0,0,u_disturbance); \n        }\n\n        v += u_h*F/m;\n        \n        gl_FragColor = vec4(v,0);\n    }\n}\n";
-    fragShaders["compute_normal"]   = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\n\nuniform highp sampler2D u_pos_map;\nuniform ivec2 u_size;\n\nvoid main(void) {\n    ivec2 coord = ivec2(floor(v_tpos*vec2(u_size)));\n    vec4 pos_dat = texture2D(u_pos_map, v_tpos);\n    \n    vec3 p0 = vec3(pos_dat.x, pos_dat.y, pos_dat.z);\n  \n    vec2 coord_offset[4];\n    int noffset = 0;\n    vec3 normal = vec3(0,0,0);\n   \n    vec2 delta = vec2(1.0/float(u_size.x), 1.0/float(u_size.y));\n\n    if (coord.x == 0 && coord.y == 0) {\n        coord_offset[0] = vec2(0, delta.y);\n        coord_offset[1] = vec2(delta.x, 0);\n        noffset = 2;\n    } else if (coord.x == u_size.x-1 && coord.y == 0) {\n        coord_offset[0] = vec2(-delta.x, 0);\n        coord_offset[1] = vec2(0, delta.y);\n        noffset = 2;\n    } else if (coord.x == 0 && coord.y == u_size.y-1) {\n        coord_offset[0] = vec2(delta.x, 0);\n        coord_offset[1] = vec2(0, -delta.y);\n        noffset = 2;\n    } else if (coord.x == u_size.x-1 && coord.y == u_size.y-1) {\n        coord_offset[0] = vec2(0, -delta.y);\n        coord_offset[1] = vec2(-delta.x, 0);\n        noffset = 2;\n    } else if (coord.x == 0) {\n        coord_offset[0] = vec2(0, delta.y);\n        coord_offset[1] = vec2(delta.x, 0);\n        coord_offset[2] = vec2(0, -delta.y);\n        noffset = 3;\n    } else if (coord.x == u_size.x-1) {\n        coord_offset[0] = vec2(0, -delta.y);\n        coord_offset[1] = vec2(-delta.x, 0);\n        coord_offset[2] = vec2(0, delta.y);\n        noffset = 3;\n    } else if (coord.y == 0) {\n        coord_offset[0] = vec2(-delta.x, 0);\n        coord_offset[1] = vec2(0, delta.y);\n        coord_offset[2] = vec2(delta.x, 0);\n        noffset = 3;\n    } else if (coord.y == u_size.y-1) {\n        coord_offset[0] = vec2(delta.x, 0);\n        coord_offset[1] = vec2(0, -delta.y);\n        coord_offset[2] = vec2(-delta.x, 0);\n        noffset = 3;\n    } else{\n        coord_offset[0] = vec2(delta.x, 0);\n        coord_offset[1] = vec2(0, -delta.y);\n        coord_offset[2] = vec2(-delta.x, 0);\n        coord_offset[3] = vec2(0, delta.y);\n        noffset = 4;\n    }\n\n    for (int i=0; i<4; i++){\n        if (i >= noffset-1) {\n            break;\n        }\n\n        vec4 p1_dat = texture2D(u_pos_map, v_tpos + coord_offset[i]);\n        vec3 p1 = vec3(p1_dat.x, p1_dat.y, p1_dat.z) - p0;\n        vec4 p2_dat = texture2D(u_pos_map, v_tpos + coord_offset[i+1]);\n        vec3 p2 = vec3(p2_dat.x, p2_dat.y, p2_dat.z) - p0;\n\n        normal += normalize(cross(p1,p2));\n    }\n\n    if (noffset == 4) {\n        vec4 p1_dat = texture2D(u_pos_map, v_tpos + coord_offset[3]);\n        vec3 p1 = vec3(p1_dat.x, p1_dat.y, p1_dat.z) - p0;\n        vec4 p2_dat = texture2D(u_pos_map, v_tpos + coord_offset[0]);\n        vec3 p2 = vec3(p2_dat.x, p2_dat.y, p2_dat.z) - p0;\n         \n        normal += normalize(cross(p1,p2));\n        normal /= 4.0;\n    }else if (noffset == 3) {\n        normal /= 2.0;\n    }\n\n    gl_FragColor = vec4(normal, 1);\n}\n";
-    fragShaders["init"]             = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\nuniform vec2 u_size;\n\nvoid main(void) {\n    vec2 p = v_tpos*u_size;\n    gl_FragColor = vec4(p, p.y/1000.0, 1);\n}\n";
-    fragShaders["render_wireframe"] = "precision highp float;\nuniform vec4 u_color;\n\nvoid main(void) {\n    gl_FragColor = u_color;\n}\n";
-    fragShaders["render"]           = "precision highp float;\nuniform vec4 u_ambient;\nuniform vec3 u_light_dir;\n\nuniform highp sampler2D u_front_map;\nuniform highp sampler2D u_back_map;\n\nvarying vec2 v_tpos;\nvarying vec3 n;\n\nvoid main(void) {\n\n    vec4 diffuse;\n    vec4 ambient;\n    \n    float k_diffuse = max(dot(n,u_light_dir), 0.45);\n\n    if (gl_FrontFacing) {\n        diffuse = k_diffuse*texture2D(u_front_map, v_tpos);\n        ambient = u_ambient*texture2D(u_front_map, v_tpos);\n    }else{\n        diffuse = k_diffuse*texture2D(u_back_map, v_tpos);\n        ambient = u_ambient*texture2D(u_back_map, v_tpos);\n    }\n    diffuse = clamp(diffuse, 0.0, 1.0);\n    \n    gl_FragColor = diffuse + ambient;\n}\n";
+    vertShaders.compute          = "attribute vec2 a_vpos;\nattribute vec2 a_tpos;\n\nvarying vec2 v_tpos;\nvoid main(void)\n{\n    gl_Position = vec4(a_vpos, 0.0, 1.0);\n    v_tpos = a_tpos;\n}\n";
+    vertShaders.render_wireframe = "attribute vec4 a_vpos;\n\nuniform mat4 u_MVP;\n\nvoid main(void) {\n    gl_Position = u_MVP*a_vpos;\n}\n";
+    vertShaders.render           = "precision highp float;\nattribute vec4 a_vpos;\nattribute vec4 a_normal;\nattribute vec2 a_tpos;\n\nuniform mat4 u_MVP;\nuniform mat4 u_MV;\nuniform mat3 u_N;\n\nvarying vec3 n;\nvarying vec2 v_tpos;\n\nvoid main(void) {\n    n = vec3(a_normal.x, a_normal.y, a_normal.z);\n    n = u_N * n;\n    \n    v_tpos = a_tpos;\n    \n    gl_Position = u_MVP*a_vpos;\n}\n";
+    fragShaders.compute_pos      = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\n\nuniform highp sampler2D u_pos_map;\nuniform highp sampler2D u_vel_map;\nuniform ivec2 u_size;\nuniform float u_h;\n\nvoid main(void) {\n    ivec2 pos = ivec2(floor(v_tpos*vec2(u_size)));\n    vec4 prev_pos_dat = texture2D(u_pos_map, v_tpos);\n    vec4 cur_vel_dat = texture2D(u_vel_map, v_tpos);\n\n    vec3 p = vec3(prev_pos_dat.x, prev_pos_dat.y, prev_pos_dat.z);\n    vec3 v = vec3(cur_vel_dat.x, cur_vel_dat.y, cur_vel_dat.z);\n    \n    if ((pos.x<3 && pos.y<3) || (pos.x>u_size.x-4 && pos.y<3)) { \n    //if ((abs(float(pos.x-(u_size.x/2))) <3.0 && pos.y==0)) { \n        gl_FragColor = vec4(p, 1);\n    }else{\n        p += u_h*v; \n        gl_FragColor = vec4(p, 1);\n    }\n}\n";
+    fragShaders.compute_vel      = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\n\nuniform highp sampler2D u_pos_map;\nuniform highp sampler2D u_vel_map;\nuniform ivec2 u_size;\nuniform vec2 u_L;\nuniform vec3 u_k;\nuniform vec3 u_param;\nuniform float u_h;\nuniform float u_disturbance;\n\nvec3 calculateForce(vec3 p, vec4 dat, float k, float L)\n{\n    vec3 q = vec3(dat.x, dat.y, dat.z);\n    float dist = length(q-p);\n    return (k*(dist-L)/dist)*(q-p);\n}\n\nvoid main(void) {\n    float m = u_param.x;\n    vec3  g = vec3(0,u_param.y,0);\n    float d = u_param.z;\n\n    ivec2 pos = ivec2(floor(v_tpos*vec2(u_size)));\n    vec2 delta = 1.0/vec2(u_size);\n    vec4 prev_pos_dat = texture2D(u_pos_map, v_tpos);\n    vec4 prev_vel_dat = texture2D(u_vel_map, v_tpos);\n    \n    vec3 v = vec3(prev_vel_dat.x, prev_vel_dat.y, prev_vel_dat.z);\n\n    if ((pos.x<3 && pos.y<3) || (pos.x>u_size.x-4 && pos.y<3)) { \n    //if ((abs(float(pos.x-(u_size.x/2))) <3.0 && pos.y==0)) { \n        gl_FragColor = vec4(v, 0);\n    }else{\n        vec3 p = vec3(prev_pos_dat.x, prev_pos_dat.y, prev_pos_dat.z);\n        vec3 F = m*g - d*v;\n        \n        // stretch\n        if (pos.x>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-1,0));\n            F += calculateForce(p, dat, u_k.x, u_L.x);\n        }\n        if (pos.x<u_size.x-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(1,0));\n            F += calculateForce(p, dat, u_k.x, u_L.x);\n        }\n        if (pos.y>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,-1));\n            F += calculateForce(p, dat, u_k.x, u_L.y);\n        }\n        if (pos.y<u_size.y-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,1));\n            F += calculateForce(p, dat, u_k.x, u_L.y);\n        }\n       \n        // shear\n        float nL = length(u_L);\n        if (pos.x>0 && pos.y<u_size.y-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-1,1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        if (pos.x<u_size.x-1 && pos.y>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(1,-1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        if (pos.x>0 && pos.y>0) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-1,-1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        if (pos.x<u_size.x-1 && pos.y<u_size.y-1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(1,1));\n            F += calculateForce(p, dat, u_k.y, nL);\n        }\n        \n        // bend\n        if (pos.x>1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(-2,0));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.x);\n        }\n        if (pos.x<u_size.x-2) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(2,0));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.x);\n        }\n        if (pos.y>1) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,-2));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.y);\n        }\n        if (pos.y<u_size.y-2) { \n            vec4 dat = texture2D(u_pos_map, v_tpos + delta*vec2(0,2));\n            F += calculateForce(p, dat, u_k.z, 2.0*u_L.y);\n        }\n\n\n        vec2 disturbance_center = vec2(pos) - vec2(u_size)/2.0;\n        if (length(disturbance_center) <= length(vec2(u_size))/10.0) {\n            F += vec3(0,0,u_disturbance); \n        }\n\n        v += u_h*F/m;\n        \n        gl_FragColor = vec4(v,0);\n    }\n}\n";
+    fragShaders.compute_normal   = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\n\nuniform highp sampler2D u_pos_map;\nuniform ivec2 u_size;\n\nvoid main(void) {\n    ivec2 coord = ivec2(floor(v_tpos*vec2(u_size)));\n    vec4 pos_dat = texture2D(u_pos_map, v_tpos);\n    \n    vec3 p0 = vec3(pos_dat.x, pos_dat.y, pos_dat.z);\n  \n    vec2 coord_offset[4];\n    int noffset = 0;\n    vec3 normal = vec3(0,0,0);\n   \n    vec2 delta = vec2(1.0/float(u_size.x), 1.0/float(u_size.y));\n\n    if (coord.x == 0 && coord.y == 0) {\n        coord_offset[0] = vec2(0, delta.y);\n        coord_offset[1] = vec2(delta.x, 0);\n        noffset = 2;\n    } else if (coord.x == u_size.x-1 && coord.y == 0) {\n        coord_offset[0] = vec2(-delta.x, 0);\n        coord_offset[1] = vec2(0, delta.y);\n        noffset = 2;\n    } else if (coord.x == 0 && coord.y == u_size.y-1) {\n        coord_offset[0] = vec2(delta.x, 0);\n        coord_offset[1] = vec2(0, -delta.y);\n        noffset = 2;\n    } else if (coord.x == u_size.x-1 && coord.y == u_size.y-1) {\n        coord_offset[0] = vec2(0, -delta.y);\n        coord_offset[1] = vec2(-delta.x, 0);\n        noffset = 2;\n    } else if (coord.x == 0) {\n        coord_offset[0] = vec2(0, delta.y);\n        coord_offset[1] = vec2(delta.x, 0);\n        coord_offset[2] = vec2(0, -delta.y);\n        noffset = 3;\n    } else if (coord.x == u_size.x-1) {\n        coord_offset[0] = vec2(0, -delta.y);\n        coord_offset[1] = vec2(-delta.x, 0);\n        coord_offset[2] = vec2(0, delta.y);\n        noffset = 3;\n    } else if (coord.y == 0) {\n        coord_offset[0] = vec2(-delta.x, 0);\n        coord_offset[1] = vec2(0, delta.y);\n        coord_offset[2] = vec2(delta.x, 0);\n        noffset = 3;\n    } else if (coord.y == u_size.y-1) {\n        coord_offset[0] = vec2(delta.x, 0);\n        coord_offset[1] = vec2(0, -delta.y);\n        coord_offset[2] = vec2(-delta.x, 0);\n        noffset = 3;\n    } else{\n        coord_offset[0] = vec2(delta.x, 0);\n        coord_offset[1] = vec2(0, -delta.y);\n        coord_offset[2] = vec2(-delta.x, 0);\n        coord_offset[3] = vec2(0, delta.y);\n        noffset = 4;\n    }\n\n    for (int i=0; i<4; i++){\n        if (i >= noffset-1) {\n            break;\n        }\n\n        vec4 p1_dat = texture2D(u_pos_map, v_tpos + coord_offset[i]);\n        vec3 p1 = vec3(p1_dat.x, p1_dat.y, p1_dat.z) - p0;\n        vec4 p2_dat = texture2D(u_pos_map, v_tpos + coord_offset[i+1]);\n        vec3 p2 = vec3(p2_dat.x, p2_dat.y, p2_dat.z) - p0;\n\n        normal += normalize(cross(p1,p2));\n    }\n\n    if (noffset == 4) {\n        vec4 p1_dat = texture2D(u_pos_map, v_tpos + coord_offset[3]);\n        vec3 p1 = vec3(p1_dat.x, p1_dat.y, p1_dat.z) - p0;\n        vec4 p2_dat = texture2D(u_pos_map, v_tpos + coord_offset[0]);\n        vec3 p2 = vec3(p2_dat.x, p2_dat.y, p2_dat.z) - p0;\n         \n        normal += normalize(cross(p1,p2));\n        normal /= 4.0;\n    }else if (noffset == 3) {\n        normal /= 2.0;\n    }\n\n    gl_FragColor = vec4(normal, 1);\n}\n";
+    fragShaders.init             = "precision highp float;\nprecision highp int;\n\nvarying vec2 v_tpos;\nuniform vec2 u_size;\n\nvoid main(void) {\n    vec2 p = v_tpos*u_size;\n    gl_FragColor = vec4(p, p.y/1000.0, 1);\n}\n";
+    fragShaders.render_wireframe = "precision highp float;\nuniform vec4 u_color;\n\nvoid main(void) {\n    gl_FragColor = u_color;\n}\n";
+    fragShaders.render           = "precision highp float;\nuniform vec4 u_ambient;\nuniform vec3 u_light_dir;\n\nuniform highp sampler2D u_front_map;\nuniform highp sampler2D u_back_map;\n\nvarying vec2 v_tpos;\nvarying vec3 n;\n\nvoid main(void) {\n\n    vec4 diffuse;\n    vec4 ambient;\n    \n    float k_diffuse = max(dot(n,u_light_dir), 0.45);\n\n    if (gl_FrontFacing) {\n        diffuse = k_diffuse*texture2D(u_front_map, v_tpos);\n        ambient = u_ambient*texture2D(u_front_map, v_tpos);\n    }else{\n        diffuse = k_diffuse*texture2D(u_back_map, v_tpos);\n        ambient = u_ambient*texture2D(u_back_map, v_tpos);\n    }\n    diffuse = clamp(diffuse, 0.0, 1.0);\n    \n    gl_FragColor = diffuse + ambient;\n}\n";
    
-    this.shaderPrograms["init_pos"]         = createShader(gl, vertShaders["compute"],  fragShaders["init"]);
-    this.shaderPrograms["compute_pos"]      = createShader(gl, vertShaders["compute"],  fragShaders["compute_pos"]);
-    this.shaderPrograms["compute_vel"]      = createShader(gl, vertShaders["compute"],  fragShaders["compute_vel"]);
-    this.shaderPrograms["render_wireframe"] = createShader(gl, vertShaders["render_wireframe"],   fragShaders["render_wireframe"]);
-    this.shaderPrograms["render"]           = createShader(gl, vertShaders["render"],   fragShaders["render"]);
-    this.shaderPrograms["compute_normal"]   = createShader(gl, vertShaders["compute"],  fragShaders["compute_normal"]);
+    this.shaderPrograms.init_pos         = createShader(gl, vertShaders.compute,  fragShaders.init);
+    this.shaderPrograms.compute_pos      = createShader(gl, vertShaders.compute,  fragShaders.compute_pos);
+    this.shaderPrograms.compute_vel      = createShader(gl, vertShaders.compute,  fragShaders.compute_vel);
+    this.shaderPrograms.render_wireframe = createShader(gl, vertShaders.render_wireframe,   fragShaders.render_wireframe);
+    this.shaderPrograms.render           = createShader(gl, vertShaders.render,   fragShaders.render);
+    this.shaderPrograms.compute_normal   = createShader(gl, vertShaders.compute,  fragShaders.compute_normal);
 
     this.initBuffers();
     this.initState();
@@ -425,10 +429,10 @@ Cloth.prototype.runProgram = function (program)
     var gl = this.gl;
     
     computeBuffer.vertices.bind();
-    program.attributes["a_vpos"].pointer();
+    program.attributes.a_vpos.pointer();
     
     computeBuffer.texCoords.bind();
-    program.attributes["a_tpos"].pointer();
+    program.attributes.a_tpos.pointer();
 
     computeBuffer.indices.bind();
     gl.viewport(0, 0, this.grid.width, this.grid.height);
@@ -439,12 +443,12 @@ Cloth.prototype.computeNormal = function ()
 {
     var gl = this.gl;
     var textures = this.grid.computeBuffer.textures;
-    var computeNormalProgram = this.shaderPrograms["compute_normal"];
+    var computeNormalProgram = this.shaderPrograms.compute_normal;
     
     computeNormalProgram.bind();
     textures[this.grid.curIdx*2].bind(0);
-    computeNormalProgram.uniforms["u_pos_map"] = 0;
-    computeNormalProgram.uniforms["u_size"] = [this.grid.width, this.grid.height];
+    computeNormalProgram.uniforms.u_pos_map = 0;
+    computeNormalProgram.uniforms.u_size = [this.grid.width, this.grid.height];
 
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.grid.renderBuffer.normalTexture.handle, 0); 
     this.runProgram(computeNormalProgram);
@@ -468,14 +472,14 @@ Cloth.prototype.render = function ()
 
     if (this.wireframe) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        renderProgram = this.shaderPrograms["render_wireframe"]
+        renderProgram = this.shaderPrograms.render_wireframe;
         renderProgram.bind();
         renderProgram.uniforms.u_MVP = this.mat.mvp;
         renderProgram.uniforms.u_color = [0.7, 0.5, 1.0, 1.0];
         
         renderBuffer.vertices.bind();
         renderBuffer.vertices.update(this.grid.computeBuffer.frameBuffer, 0);
-        renderProgram.attributes["a_vpos"].pointer();
+        renderProgram.attributes.a_vpos.pointer();
         
         renderBuffer.indices.bind();
         gl.viewport(0, 0, this.viewport.width, this.viewport.height);
@@ -485,15 +489,15 @@ Cloth.prototype.render = function ()
     } else {
         this.computeNormal();
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        renderProgram = this.shaderPrograms["render"];
+        renderProgram = this.shaderPrograms.render;
 
         renderProgram.bind();
 
         textures[0].bind(0);
-        renderProgram.uniforms["u_front_map"] = 0;
+        renderProgram.uniforms.u_front_map = 0;
         
         textures[1].bind(1);
-        renderProgram.uniforms["u_back_map"] = 1;
+        renderProgram.uniforms.u_back_map = 1;
 
         renderProgram.uniforms.u_MVP = this.mat.mvp;
         renderProgram.uniforms.u_MV = this.mat.mv;
@@ -507,14 +511,14 @@ Cloth.prototype.render = function ()
 
         renderBuffer.vertices.bind();
         renderBuffer.vertices.update(this.grid.computeBuffer.frameBuffer, 0);
-        renderProgram.attributes["a_vpos"].pointer();
+        renderProgram.attributes.a_vpos.pointer();
         
         renderBuffer.texCoords.bind();
-        renderProgram.attributes["a_tpos"].pointer();
+        renderProgram.attributes.a_tpos.pointer();
         
         renderBuffer.normals.bind();
         renderBuffer.normals.update(renderBuffer.normalBuffer, 0);
-        renderProgram.attributes["a_normal"].pointer();
+        renderProgram.attributes.a_normal.pointer();
         
         renderBuffer.indices.bind();
         gl.viewport(0, 0, this.viewport.width, this.viewport.height);
@@ -541,8 +545,8 @@ Cloth.prototype.simulate = function (delta)
     }
 
     var nextBufIdx = (this.grid.curIdx+1)%this.nBuf;
-    var computeVelocityProgram = this.shaderPrograms["compute_vel"];
-    var computePositionProgram = this.shaderPrograms["compute_pos"];
+    var computeVelocityProgram = this.shaderPrograms.compute_vel;
+    var computePositionProgram = this.shaderPrograms.compute_pos;
     var textures = this.grid.computeBuffer.textures;
     var fbo = this.grid.computeBuffer.frameBufferObject;
 
@@ -552,27 +556,27 @@ Cloth.prototype.simulate = function (delta)
     computeVelocityProgram.bind();
 
     textures[this.grid.curIdx*2].bind(0);
-    computeVelocityProgram.uniforms["u_pos_map"] = 0;
+    computeVelocityProgram.uniforms.u_pos_map = 0;
     
     textures[this.grid.curIdx*2 + 1].bind(1);
-    computeVelocityProgram.uniforms["u_vel_map"] = 1;
+    computeVelocityProgram.uniforms.u_vel_map = 1;
 
-    computeVelocityProgram.uniforms["u_size"] = [this.grid.width, this.grid.height];
-    computeVelocityProgram.uniforms["u_L"] = [this.width/this.grid.width,
+    computeVelocityProgram.uniforms.u_size = [this.grid.width, this.grid.height];
+    computeVelocityProgram.uniforms.u_L = [this.width/this.grid.width,
                                               this.height/this.grid.height];
-    computeVelocityProgram.uniforms["u_param"] = [
+    computeVelocityProgram.uniforms.u_param = [
         this.param.gramPerMeterSq*this.width*this.height/(this.grid.width*this.grid.height*this.pixelPerMeter*this.pixelPerMeter*1000.0),
         this.param.gravity,
         this.param.damping
     ];
-    computeVelocityProgram.uniforms["u_k"] = [this.param.k.stretch, this.param.k.shear, this.param.k.bend];
-    computeVelocityProgram.uniforms["u_h"] = delta;
+    computeVelocityProgram.uniforms.u_k = [this.param.k.stretch, this.param.k.shear, this.param.k.bend];
+    computeVelocityProgram.uniforms.u_h = delta;
 
     if (this.disturbance) {
-        computeVelocityProgram.uniforms["u_disturbance"] = this.disturbanceForce;
+        computeVelocityProgram.uniforms.u_disturbance = this.disturbanceForce;
         this.disturbance = false;
     }else{
-        computeVelocityProgram.uniforms["u_disturbance"] = 0.0;
+        computeVelocityProgram.uniforms.u_disturbance = 0.0;
     }
 
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[nextBufIdx*2+1].handle, 0); 
@@ -582,13 +586,13 @@ Cloth.prototype.simulate = function (delta)
     computePositionProgram.bind();
     
     textures[this.grid.curIdx*2].bind(0);
-    computePositionProgram.uniforms["u_pos_map"] = 0;
+    computePositionProgram.uniforms.u_pos_map = 0;
     
     textures[nextBufIdx*2 + 1].bind(1);
-    computePositionProgram.uniforms["u_vel_map"] = 1;
+    computePositionProgram.uniforms.u_vel_map = 1;
     
-    computePositionProgram.uniforms["u_size"] = [this.grid.width, this.grid.height];
-    computePositionProgram.uniforms["u_h"] = delta;
+    computePositionProgram.uniforms.u_size = [this.grid.width, this.grid.height];
+    computePositionProgram.uniforms.u_h = delta;
     
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[nextBufIdx*2].handle, 0); 
     this.runProgram(computePositionProgram);
@@ -601,6 +605,8 @@ Cloth.prototype.simulate = function (delta)
 module.exports = Cloth;
 
 },{"gl-buffer":5,"gl-matrix":18,"gl-shader":19,"gl-texture2d":41}],3:[function(require,module,exports){
+/*jslint browserify:true*/
+/*global console*/
 "use strict";
 
 var Cloth = require("./cloth.js");
@@ -671,6 +677,7 @@ function main()
 window.addEventListener("load", main);
 
 },{"./animation.js":1,"./cloth.js":2,"./scene_control.js":4}],4:[function(require,module,exports){
+/*jslint browserify:true*/
 var mat4 = require("gl-matrix").mat4;
 var vec3 = require("gl-matrix").vec3;
 var quat = require("gl-matrix").quat;
@@ -702,7 +709,7 @@ function SceneControl(canvas)
     this.onMouseDown = function(e)
     {
         self.isMouseDown = true; 
-        self.startPos.x = e.clientX
+        self.startPos.x = e.clientX;
         self.startPos.y = e.clientY;
         self.moved = false;
     };
@@ -732,7 +739,7 @@ function SceneControl(canvas)
         var axis = [self.startPos.y-e.clientY, e.clientX-self.startPos.x,0];
         var rad = vec3.length(axis)/200.0;
         vec3.normalize(axis, axis);
-        quat.setAxisAngle(q, axis, rad)
+        quat.setAxisAngle(q, axis, rad);
 
         if (typeof self.mouseMoveCallBack === "function") {
             self.mouseMoveCallBack(q);

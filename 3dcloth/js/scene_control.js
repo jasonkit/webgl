@@ -1,3 +1,4 @@
+/*jslint browserify:true*/
 var mat4 = require("gl-matrix").mat4;
 var vec3 = require("gl-matrix").vec3;
 var quat = require("gl-matrix").quat;
@@ -29,7 +30,7 @@ function SceneControl(canvas)
     this.onMouseDown = function(e)
     {
         self.isMouseDown = true; 
-        self.startPos.x = e.clientX
+        self.startPos.x = e.clientX;
         self.startPos.y = e.clientY;
         self.moved = false;
     };
@@ -59,7 +60,7 @@ function SceneControl(canvas)
         var axis = [self.startPos.y-e.clientY, e.clientX-self.startPos.x,0];
         var rad = vec3.length(axis)/200.0;
         vec3.normalize(axis, axis);
-        quat.setAxisAngle(q, axis, rad)
+        quat.setAxisAngle(q, axis, rad);
 
         if (typeof self.mouseMoveCallBack === "function") {
             self.mouseMoveCallBack(q);

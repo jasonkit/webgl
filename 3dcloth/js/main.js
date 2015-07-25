@@ -1,3 +1,5 @@
+/*jslint browserify:true*/
+/*global console*/
 "use strict";
 
 var Cloth = require("./cloth.js");
